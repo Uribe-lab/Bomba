@@ -1,0 +1,21 @@
+{
+  "files": [
+    "actions.h",
+    "eez-flow.cpp",
+    "eez-flow.h",
+    "fonts.h",
+    "images.c",
+    "images.h",
+    "screens.c",
+    "screens.h",
+    "structs.h",
+    "styles.c",
+    "styles.h",
+    "ui.c",
+    "ui.h",
+    "ui_image_error_velocidad.c",
+    "ui_image_volver_1.c",
+    "ui_image_y.c",
+    "vars.h"
+  ]
+}
