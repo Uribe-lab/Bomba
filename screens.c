@@ -12,8 +12,8 @@
 
 objects_t objects;
 
-static const char *screen_names[] = { "Main", "velocidad", "ERROR", "cargando" };
-static const char *object_names[] = { "main", "velocidad", "error", "cargando", "ord", "numero_de_cama", "opciones", "volumen", "tiemto_total", "ir_a_programar_", "teclado1", "teclado_2", "boton", "indique_el_valor_", "teclado_3", "obj0", "obj1", "obj2", "triangulo_error", "obj3", "suero_bar", "label_cama", "label_volumen", "label_tiempo", "label_velocidad", "label_solucion" };
+static const char *screen_names[] = { "Main", "velocidad", "ERROR", "cargando", "alarma" };
+static const char *object_names[] = { "main", "velocidad", "error", "cargando", "alarma", "ord", "numero_de_cama", "opciones", "volumen", "tiemto_total", "ir_a_programar_", "teclado1", "teclado_2", "boton", "indique_el_valor_", "teclado_3", "obj0", "obj1", "obj2", "triangulo_error", "obj3", "suero_bar", "obj4", "label_cama", "label_volumen", "label_tiempo", "label_velocidad", "label_solucion", "obj5", "obj6", "obj7", "obj8" };
 
 //
 // Event handlers
@@ -83,7 +83,7 @@ static void event_handler_cb_velocidad_velocidad(lv_event_t *e) {
     
     if (event == LV_EVENT_VALUE_CHANGED) {
         e->user_data = (void *)0;
-        flowPropagateValueLVGLEvent(flowState, -1, 4, e);
+        flowPropagateValueLVGLEvent(flowState, -1, 5, e);
     }
 }
 
@@ -143,7 +143,7 @@ void create_screen_main() {
     lv_obj_set_pos(obj, 0, 0);
     lv_obj_set_size(obj, 240, 320);
     lv_obj_set_style_bg_color(obj, lv_color_hex(0xff55ff), LV_PART_MAIN | LV_STATE_CHECKED);
-    lv_obj_set_style_bg_color(obj, lv_color_hex(0xeef2f1), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(obj, lv_color_hex(0x4c8b98), LV_PART_MAIN | LV_STATE_DEFAULT);
     {
         lv_obj_t *parent_obj = obj;
         {
@@ -159,6 +159,7 @@ void create_screen_main() {
             lv_obj_set_pos(obj, 68, 14);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_obj_set_style_border_color(obj, lv_color_darken(lv_color_hex(0xc63636), 64), LV_PART_MAIN | LV_STATE_EDITED);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0xf2e9e9), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "ORDEN MEDICA");
         }
         {
@@ -172,6 +173,8 @@ void create_screen_main() {
             lv_textarea_set_one_line(obj, true);
             lv_textarea_set_password_mode(obj, false);
             lv_obj_add_event_cb(obj, event_handler_cb_main_numero_de_cama, LV_EVENT_ALL, flowState);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0x191717), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_color(obj, lv_color_lighten(lv_color_hex(0xffffff), 0), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
             // opciones
@@ -181,6 +184,8 @@ void create_screen_main() {
             lv_obj_set_size(obj, 228, 27);
             lv_dropdown_set_options_static(obj, "Solucion Salina 0.9%\nLactato de Ringer\nDextrosa al 5%\nSolucion Mixta\nAgua Destilada");
             lv_dropdown_set_selected(obj, 0);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0x181616), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xf6f6f6), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
             // volumen
@@ -194,6 +199,9 @@ void create_screen_main() {
             lv_textarea_set_one_line(obj, true);
             lv_textarea_set_password_mode(obj, false);
             lv_obj_add_event_cb(obj, event_handler_cb_main_volumen, LV_EVENT_ALL, flowState);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0x181616), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xf0e9e9), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
             // tiemto total
@@ -207,6 +215,8 @@ void create_screen_main() {
             lv_textarea_set_one_line(obj, true);
             lv_textarea_set_password_mode(obj, false);
             lv_obj_add_event_cb(obj, event_handler_cb_main_tiemto_total, LV_EVENT_ALL, flowState);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0x181616), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xf3f3f3), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
             // Ir a Programar 
@@ -265,7 +275,7 @@ void create_screen_velocidad() {
     lv_obj_set_pos(obj, 0, 0);
     lv_obj_set_size(obj, 240, 320);
     lv_obj_add_event_cb(obj, event_handler_cb_velocidad_velocidad, LV_EVENT_ALL, flowState);
-    lv_obj_set_style_bg_color(obj, lv_color_hex(0x73aa80), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(obj, lv_color_hex(0x76567f), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_color(obj, lv_color_hex(0xcede33), LV_PART_MAIN | LV_STATE_CHECKED);
     {
         lv_obj_t *parent_obj = obj;
@@ -344,7 +354,7 @@ void create_screen_error() {
     objects.error = obj;
     lv_obj_set_pos(obj, 0, 0);
     lv_obj_set_size(obj, 240, 320);
-    lv_obj_set_style_bg_color(obj, lv_color_hex(0xfdfeff), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(obj, lv_color_hex(0x090909), LV_PART_MAIN | LV_STATE_DEFAULT);
     {
         lv_obj_t *parent_obj = obj;
         {
@@ -370,6 +380,7 @@ void create_screen_error() {
             lv_obj_set_pos(obj, 49, 57);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_img_set_src(obj, &img_error_velocidad);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0x1065cc), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
             lv_obj_t *obj = lv_img_create(parent_obj);
@@ -398,6 +409,7 @@ void create_screen_cargando() {
     objects.cargando = obj;
     lv_obj_set_pos(obj, 0, 0);
     lv_obj_set_size(obj, 240, 320);
+    lv_obj_set_style_bg_color(obj, lv_color_hex(0x192d35), LV_PART_MAIN | LV_STATE_DEFAULT);
     {
         lv_obj_t *parent_obj = obj;
         {
@@ -407,6 +419,8 @@ void create_screen_cargando() {
             lv_obj_set_pos(obj, 35, 10);
             lv_obj_set_size(obj, 75, 208);
             lv_bar_set_value(obj, 25, LV_ANIM_OFF);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0x2196f3), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xa0cd2d), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
             lv_obj_t *obj = lv_img_create(parent_obj);
@@ -417,8 +431,10 @@ void create_screen_cargando() {
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.obj4 = obj;
             lv_obj_set_pos(obj, 120, 10);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "INFUSION EN\n      CURSO");
         }
         {
@@ -427,6 +443,9 @@ void create_screen_cargando() {
             objects.label_cama = obj;
             lv_obj_set_pos(obj, 169, 87);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "Text");
         }
         {
@@ -435,6 +454,7 @@ void create_screen_cargando() {
             objects.label_volumen = obj;
             lv_obj_set_pos(obj, 153, 144);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "Text");
         }
         {
@@ -443,6 +463,7 @@ void create_screen_cargando() {
             objects.label_tiempo = obj;
             lv_obj_set_pos(obj, 148, 194);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "Text");
         }
         {
@@ -451,6 +472,7 @@ void create_screen_cargando() {
             objects.label_velocidad = obj;
             lv_obj_set_pos(obj, 140, 244);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "Text");
         }
         {
@@ -459,30 +481,39 @@ void create_screen_cargando() {
             objects.label_solucion = obj;
             lv_obj_set_pos(obj, 105, 269);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "Text");
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.obj5 = obj;
             lv_obj_set_pos(obj, 146, 62);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "CAMA");
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.obj6 = obj;
             lv_obj_set_pos(obj, 131, 114);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "VOLUMEN");
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.obj7 = obj;
             lv_obj_set_pos(obj, 140, 169);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "TIEMPO");
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.obj8 = obj;
             lv_obj_set_pos(obj, 125, 217);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xeeecec), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "VELOCIDAD");
         }
     }
@@ -495,15 +526,54 @@ void tick_screen_cargando() {
     (void)flowState;
 }
 
+void create_screen_alarma() {
+    void *flowState = getFlowState(0, 4);
+    (void)flowState;
+    lv_obj_t *obj = lv_obj_create(0);
+    objects.alarma = obj;
+    lv_obj_set_pos(obj, 0, 0);
+    lv_obj_set_size(obj, 240, 320);
+    lv_obj_set_style_bg_color(obj, lv_color_hex(0xd53232), LV_PART_MAIN | LV_STATE_DEFAULT);
+    {
+        lv_obj_t *parent_obj = obj;
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 106, 52);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "Text");
+        }
+        {
+            lv_obj_t *obj = lv_img_create(parent_obj);
+            lv_obj_set_pos(obj, 54, 92);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_img_set_src(obj, &img_alarma);
+        }
+        {
+            lv_obj_t *obj = lv_img_create(parent_obj);
+            lv_obj_set_pos(obj, 111, 191);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_img_set_src(obj, &img_l);
+        }
+    }
+    
+    tick_screen_alarma();
+}
+
+void tick_screen_alarma() {
+    void *flowState = getFlowState(0, 4);
+    (void)flowState;
+}
+
 typedef void (*tick_screen_func_t)();
 tick_screen_func_t tick_screen_funcs[] = {
     tick_screen_main,
     tick_screen_velocidad,
     tick_screen_error,
     tick_screen_cargando,
+    tick_screen_alarma,
 };
 void tick_screen(int screen_index) {
-    if (screen_index >= 0 && screen_index < 4) {
+    if (screen_index >= 0 && screen_index < 5) {
         tick_screen_funcs[screen_index]();
     }
 }
@@ -603,4 +673,5 @@ void create_screens() {
     create_screen_velocidad();
     create_screen_error();
     create_screen_cargando();
+    create_screen_alarma();
 }

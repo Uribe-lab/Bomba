@@ -116,6 +116,12 @@ void LCD_Init(void)
   LCD_WriteCommand(0x36);    // Memory Access Control (Orientación)
   LCD_WriteData(0x48);       // Orientación vertical estándar 
 
+  // =========================================================
+  // ÚNICO CAMBIO: Activar la inversión de color (INVON)
+  // Corrige los colores amarillos/invertidos en pantallas IPS
+  // =========================================================
+  LCD_WriteCommand(0x21); 
+
   LCD_WriteCommand(0x3A);    // Pixel Format Set
   LCD_WriteData(0x55);       // 16-bit por píxel (RGB565)
 
@@ -147,25 +153,16 @@ void LCD_Init(void)
   LCD_WriteCommand(0x29);    // Display ON
   delay(20);
 }
-/******************************************************************************
-function: Set the cursor position
-parameter :
-    Xstart:   Start uint16_t x coordinate
-    Ystart:   Start uint16_t y coordinate
-    Xend  :   End uint16_t coordinates
-    Yend  :   End uint16_t coordinatesen
-******************************************************************************/
-void LCD_SetCursor(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t  Yend)
+
+void LCD_SetCursor(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend)
 { 
   if (HORIZONTAL) {
-    // set the X coordinates
     LCD_WriteCommand(0x2A);
     LCD_WriteData(Xstart >> 8);
     LCD_WriteData(Xstart + Offset_X);
     LCD_WriteData(Xend >> 8);
     LCD_WriteData(Xend + Offset_X);
     
-    // set the Y coordinates
     LCD_WriteCommand(0x2B);
     LCD_WriteData(Ystart >> 8);
     LCD_WriteData(Ystart + Offset_Y);
@@ -173,13 +170,12 @@ void LCD_SetCursor(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t  Ye
     LCD_WriteData(Yend + Offset_Y);
   }
   else {
-    // set the X coordinates
     LCD_WriteCommand(0x2A);
     LCD_WriteData(Ystart >> 8);
     LCD_WriteData(Ystart + Offset_Y);
     LCD_WriteData(Yend >> 8);
     LCD_WriteData(Yend + Offset_Y);
-    // set the Y coordinates
+
     LCD_WriteCommand(0x2B);
     LCD_WriteData(Xstart >> 8);
     LCD_WriteData(Xstart + Offset_X);
@@ -188,15 +184,7 @@ void LCD_SetCursor(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t  Ye
   }
   LCD_WriteCommand(0x2C);
 }
-/******************************************************************************
-function: Refresh the image in an area
-parameter :
-    Xstart:   Start uint16_t x coordinate
-    Ystart:   Start uint16_t y coordinate
-    Xend  :   End uint16_t coordinates
-    Yend  :   End uint16_t coordinates
-    color :   Set the color
-******************************************************************************/
+
 void LCD_addWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend,uint16_t* color)
 {             
   uint16_t Show_Width = Xend - Xstart + 1;
@@ -206,14 +194,12 @@ void LCD_addWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yen
   LCD_WriteData_nbyte((uint8_t*)color, NULL, numBytes);        
 }
 
-
-// backlight
 uint8_t LCD_Backlight = 50;
 void Backlight_Init()
 {
   ledcAttach(LCD_Backlight_PIN, Frequency, Resolution);   
   ledcWrite(LCD_Backlight_PIN, Dutyfactor);  
-  Set_Backlight(LCD_Backlight);      //0~100                 
+  Set_Backlight(LCD_Backlight);                  
 }
 
 void Set_Backlight(uint8_t Light)                     
@@ -227,6 +213,3 @@ void Set_Backlight(uint8_t Light)
     ledcWrite(LCD_Backlight_PIN, Backlight);
   }
 }
-
-
-

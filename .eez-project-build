@@ -13,7 +13,9 @@
     "styles.h",
     "ui.c",
     "ui.h",
+    "ui_image_alarma.c",
     "ui_image_error_velocidad.c",
+    "ui_image_l.c",
     "ui_image_volver_1.c",
     "ui_image_y.c",
     "vars.h"

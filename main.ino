@@ -17,8 +17,6 @@
 // CONFIGURACIÓN DE AUDIO
 // ==========================================================
 
-// Probamos 2000 Hz.
-// Si 2400 Hz sonaba más fuerte, después volvemos a 2400.
 #define AUDIO_FREQUENCY    2000
 
 // ==========================================================
@@ -36,9 +34,6 @@ String velocidad_txt = "---";
 // ==========================================================
 
 void sonido_encendido() {
-  // 128 = 50% duty
-  // Es la máxima excursión AC que podemos obtener
-  // usando esta señal PWM de 3.3 V.
   ledcWrite(AUDIO_DATA_PIN, 128);
 }
 
@@ -77,10 +72,8 @@ bool validar_datos_main(String solucion, float vol, float tiempo_h) {
   // --------------------------------------------------------
 
   if (solucion.indexOf("Salina") >= 0) {
-
     min_vol = 500;
     max_vol = 1000;
-
     min_t_h = 8;
     max_t_h = 24;
   }
@@ -93,10 +86,8 @@ bool validar_datos_main(String solucion, float vol, float tiempo_h) {
     solucion.indexOf("Lactato") >= 0 ||
     solucion.indexOf("Ringer") >= 0
   ) {
-
     min_vol = 500;
     max_vol = 1000;
-
     min_t_h = 2;
     max_t_h = 8;
   }
@@ -108,10 +99,8 @@ bool validar_datos_main(String solucion, float vol, float tiempo_h) {
   else if (
     solucion.indexOf("Dextrosa") >= 0
   ) {
-
     min_vol = 250;
     max_vol = 1000;
-
     min_t_h = 4;
     max_t_h = 12;
   }
@@ -123,10 +112,8 @@ bool validar_datos_main(String solucion, float vol, float tiempo_h) {
   else if (
     solucion.indexOf("Mixta") >= 0
   ) {
-
     min_vol = 500;
     max_vol = 1000;
-
     min_t_h = 8;
     max_t_h = 24;
   }
@@ -139,10 +126,8 @@ bool validar_datos_main(String solucion, float vol, float tiempo_h) {
     solucion.indexOf("Agua") >= 0 ||
     solucion.indexOf("Destilada") >= 0
   ) {
-
     min_vol = 50;
     max_vol = 100;
-
     min_t_h = 0.5;
     max_t_h = 1.0;
   }
@@ -152,11 +137,9 @@ bool validar_datos_main(String solucion, float vol, float tiempo_h) {
   // --------------------------------------------------------
 
   else {
-
     Serial.println(
       "--> ERROR EN MAIN: Solución no reconocida"
     );
-
     return false;
   }
 
@@ -168,11 +151,9 @@ bool validar_datos_main(String solucion, float vol, float tiempo_h) {
     vol < min_vol ||
     vol > max_vol
   ) {
-
     Serial.println(
       "--> ERROR EN MAIN: Volumen fuera de rango permisible"
     );
-
     return false;
   }
 
@@ -184,11 +165,9 @@ bool validar_datos_main(String solucion, float vol, float tiempo_h) {
     tiempo_h < min_t_h ||
     tiempo_h > max_t_h
   ) {
-
     Serial.println(
       "--> ERROR EN MAIN: Tiempo fuera de rango permisible"
     );
-
     return false;
   }
 
@@ -481,7 +460,6 @@ void setup() {
     OUTPUT
   );
 
-  // Primero deshabilitado
   digitalWrite(
     AUDIO_ENABLE_PIN,
     HIGH
@@ -489,7 +467,6 @@ void setup() {
 
   delay(20);
 
-  // LOW = AMPLIFICADOR ENCENDIDO
   digitalWrite(
     AUDIO_ENABLE_PIN,
     LOW
@@ -507,39 +484,18 @@ void setup() {
     8
   );
 
-  // Comenzar en silencio
   ledcWrite(
     AUDIO_DATA_PIN,
     0
   );
 
-  Serial.println(
-    "===================================="
-  );
-
-  Serial.println(
-    "SISTEMA DE BOMBA DE INFUSION"
-  );
-
-  Serial.print(
-    "Frecuencia audio: "
-  );
-
-  Serial.print(
-    AUDIO_FREQUENCY
-  );
-
-  Serial.println(
-    " Hz"
-  );
-
-  Serial.println(
-    "Amplificador FM8002E: ENCENDIDO"
-  );
-
-  Serial.println(
-    "===================================="
-  );
+  Serial.println("====================================");
+  Serial.println("SISTEMA DE BOMBA DE INFUSION");
+  Serial.print("Frecuencia audio: ");
+  Serial.print(AUDIO_FREQUENCY);
+  Serial.println(" Hz");
+  Serial.println("Amplificador FM8002E: ENCENDIDO");
+  Serial.println("====================================");
 }
 
 // ==========================================================
@@ -687,10 +643,6 @@ void loop() {
     ultimo_tiempo_triangulo =
       ::millis();
 
-    // ------------------------------------------------------
-    // ESTAMOS EN ERROR
-    // ------------------------------------------------------
-
     if (
       objects.error != NULL &&
       lv_scr_act() == objects.error
@@ -700,13 +652,8 @@ void loop() {
         objects.triangulo_error != NULL
       ) {
 
-        // Cambiar estado
         esta_oculto =
           !esta_oculto;
-
-        // --------------------------------------------------
-        // TRIÁNGULO OCULTO
-        // --------------------------------------------------
 
         if (esta_oculto) {
 
@@ -717,10 +664,6 @@ void loop() {
 
           sonido_apagado();
         }
-
-        // --------------------------------------------------
-        // TRIÁNGULO VISIBLE
-        // --------------------------------------------------
 
         else {
 
@@ -735,10 +678,6 @@ void loop() {
 
     }
 
-    // ------------------------------------------------------
-    // NO ESTAMOS EN ERROR
-    // ------------------------------------------------------
-
     else {
 
       esta_oculto = false;
@@ -748,13 +687,11 @@ void loop() {
   }
 
   // ========================================================
-  // BARRA DE SUERO
-  // ========================================================
+  // BARRA DE SUERO (ANIMACIÓN DE VACIADO 100% -> 0%)
+  // ==========================================================
 
-  static unsigned long
-    ultimo_tiempo_suero = 0;
-
-  static int nivel_suero = 0;
+  static unsigned long ultimo_tiempo_suero = 0;
+  static int nivel_suero = 100; // Comienza completamente llena
 
   if (
     ::millis() -
@@ -769,8 +706,13 @@ void loop() {
       lv_scr_act() == objects.cargando
     ) {
 
-      nivel_suero =
-        (nivel_suero + 1) % 101;
+      // Disminuye el porcentaje del líquido
+      nivel_suero--;
+
+      // Al agotarse el suero (0%), se reinicia al 100%
+      if (nivel_suero < 0) {
+        nivel_suero = 100;
+      }
 
       if (
         objects.suero_bar != NULL
@@ -785,7 +727,8 @@ void loop() {
 
     } else {
 
-      nivel_suero = 0;
+      // Si se sale de la pantalla de infusión, la bolsa se restablece a 100%
+      nivel_suero = 100;
     }
   }
 

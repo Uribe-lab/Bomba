@@ -15,7 +15,8 @@ enum ScreensEnum {
     SCREEN_ID_VELOCIDAD = 2,
     SCREEN_ID_ERROR = 3,
     SCREEN_ID_CARGANDO = 4,
-    _SCREEN_ID_LAST = 4
+    SCREEN_ID_ALARMA = 5,
+    _SCREEN_ID_LAST = 5
 };
 
 typedef struct _objects_t {
@@ -23,6 +24,7 @@ typedef struct _objects_t {
     lv_obj_t *velocidad;
     lv_obj_t *error;
     lv_obj_t *cargando;
+    lv_obj_t *alarma;
     lv_obj_t *ord;
     lv_obj_t *numero_de_cama;
     lv_obj_t *opciones;
@@ -40,11 +42,16 @@ typedef struct _objects_t {
     lv_obj_t *triangulo_error;
     lv_obj_t *obj3;
     lv_obj_t *suero_bar;
+    lv_obj_t *obj4;
     lv_obj_t *label_cama;
     lv_obj_t *label_volumen;
     lv_obj_t *label_tiempo;
     lv_obj_t *label_velocidad;
     lv_obj_t *label_solucion;
+    lv_obj_t *obj5;
+    lv_obj_t *obj6;
+    lv_obj_t *obj7;
+    lv_obj_t *obj8;
 } objects_t;
 
 extern objects_t objects;
@@ -60,6 +67,9 @@ void tick_screen_error();
 
 void create_screen_cargando();
 void tick_screen_cargando();
+
+void create_screen_alarma();
+void tick_screen_alarma();
 
 void tick_screen_by_id(enum ScreensEnum screenId);
 void tick_screen(int screen_index);
