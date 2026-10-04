@@ -11,7 +11,7 @@ extern const lv_img_dsc_t img_volver_1;
 extern const lv_img_dsc_t img_error_velocidad;
 extern const lv_img_dsc_t img_y;
 extern const lv_img_dsc_t img_alarma;
-extern const lv_img_dsc_t img_l;
+extern const lv_img_dsc_t img_alarma_negra;
 
 #ifndef EXT_IMG_DESC_T
 #define EXT_IMG_DESC_T

@@ -8,413 +8,279 @@
 // ==========================================================
 // PINES ESP32-S3 ES3C28P
 // ==========================================================
-
 #define PIN_BACKLIGHT      45
-#define AUDIO_ENABLE_PIN   1
-#define AUDIO_DATA_PIN     6
 
 // ==========================================================
-// CONFIGURACIÓN DE AUDIO
+// PIN DEL BUZZER (IO21)
 // ==========================================================
+#define PIN_BUZZER         21  
+#define BUZZER_FREQ        2800
 
-#define AUDIO_FREQUENCY    2000
+// ==========================================================
+// PINES DE PULSADORES (3 PULSADORES DE ALARMA)
+// ==========================================================
+#define BUTTON_FALLO_A     2   // IO2  -> Caso 1: Oclusión Distal
+#define BUTTON_FALLO_B     3   // IO3  -> Caso 2: Aire en la Línea
+#define BUTTON_FALLO_C     14  // IO14 -> Caso 3: Desviación de Flujo
 
 // ==========================================================
 // VARIABLES GLOBALES
 // ==========================================================
-
 String cama_txt = "---";
 String solucion_seleccionada = "---";
 String volumen_txt = "---";
 String tiempo_txt = "---";
 String velocidad_txt = "---";
 
-// ==========================================================
-// AUDIO
-// ==========================================================
+// Control de Caso Activo (1: Oclusión, 2: Aire, 3: Desviación)
+int caso_activo = 0; 
 
+// ==========================================================
+// CONTROL DE BUZZER
+// ==========================================================
 void sonido_encendido() {
-  ledcWrite(AUDIO_DATA_PIN, 128);
+  ledcWriteTone(PIN_BUZZER, BUZZER_FREQ);
 }
 
 void sonido_apagado() {
-  ledcWrite(AUDIO_DATA_PIN, 0);
+  ledcWriteTone(PIN_BUZZER, 0);
 }
 
 // ==========================================================
-// 1. VALIDACIÓN PRELIMINAR
+// VALIDACIONES PRELIMINAR Y DE VELOCIDAD
 // ==========================================================
-
 bool validar_datos_main(String solucion, float vol, float tiempo_h) {
-
-  float min_vol = 0;
-  float max_vol = 0;
-
-  float min_t_h = 0;
-  float max_t_h = 0;
-
-  Serial.println("\n--- VALIDANDO DATOS EN MAIN ---");
-
-  Serial.print("Solución: '");
-  Serial.print(solucion);
-  Serial.println("'");
-
-  Serial.print("Volumen: ");
-  Serial.print(vol);
-  Serial.println(" mL");
-
-  Serial.print("Tiempo: ");
-  Serial.print(tiempo_h);
-  Serial.println(" hrs");
-
-  // --------------------------------------------------------
-  // SALINA
-  // --------------------------------------------------------
+  float min_vol = 0, max_vol = 0;
+  float min_t_h = 0, max_t_h = 0;
 
   if (solucion.indexOf("Salina") >= 0) {
-    min_vol = 500;
-    max_vol = 1000;
-    min_t_h = 8;
-    max_t_h = 24;
-  }
-
-  // --------------------------------------------------------
-  // LACTATO / RINGER
-  // --------------------------------------------------------
-
-  else if (
-    solucion.indexOf("Lactato") >= 0 ||
-    solucion.indexOf("Ringer") >= 0
-  ) {
-    min_vol = 500;
-    max_vol = 1000;
-    min_t_h = 2;
-    max_t_h = 8;
-  }
-
-  // --------------------------------------------------------
-  // DEXTROSA
-  // --------------------------------------------------------
-
-  else if (
-    solucion.indexOf("Dextrosa") >= 0
-  ) {
-    min_vol = 250;
-    max_vol = 1000;
-    min_t_h = 4;
-    max_t_h = 12;
-  }
-
-  // --------------------------------------------------------
-  // MIXTA
-  // --------------------------------------------------------
-
-  else if (
-    solucion.indexOf("Mixta") >= 0
-  ) {
-    min_vol = 500;
-    max_vol = 1000;
-    min_t_h = 8;
-    max_t_h = 24;
-  }
-
-  // --------------------------------------------------------
-  // AGUA / DESTILADA
-  // --------------------------------------------------------
-
-  else if (
-    solucion.indexOf("Agua") >= 0 ||
-    solucion.indexOf("Destilada") >= 0
-  ) {
-    min_vol = 50;
-    max_vol = 100;
-    min_t_h = 0.5;
-    max_t_h = 1.0;
-  }
-
-  // --------------------------------------------------------
-  // SOLUCIÓN NO RECONOCIDA
-  // --------------------------------------------------------
-
-  else {
-    Serial.println(
-      "--> ERROR EN MAIN: Solución no reconocida"
-    );
+    min_vol = 500; max_vol = 1000; min_t_h = 8; max_t_h = 24;
+  } else if (solucion.indexOf("Lactato") >= 0 || solucion.indexOf("Ringer") >= 0) {
+    min_vol = 500; max_vol = 1000; min_t_h = 2; max_t_h = 8;
+  } else if (solucion.indexOf("Dextrosa") >= 0) {
+    min_vol = 250; max_vol = 1000; min_t_h = 4; max_t_h = 12;
+  } else if (solucion.indexOf("Mixta") >= 0) {
+    min_vol = 500; max_vol = 1000; min_t_h = 8; max_t_h = 24;
+  } else if (solucion.indexOf("Agua") >= 0 || solucion.indexOf("Destilada") >= 0) {
+    min_vol = 50; max_vol = 100; min_t_h = 0.5; max_t_h = 1.0;
+  } else {
     return false;
   }
 
-  // --------------------------------------------------------
-  // VOLUMEN
-  // --------------------------------------------------------
-
-  if (
-    vol < min_vol ||
-    vol > max_vol
-  ) {
-    Serial.println(
-      "--> ERROR EN MAIN: Volumen fuera de rango permisible"
-    );
-    return false;
-  }
-
-  // --------------------------------------------------------
-  // TIEMPO
-  // --------------------------------------------------------
-
-  if (
-    tiempo_h < min_t_h ||
-    tiempo_h > max_t_h
-  ) {
-    Serial.println(
-      "--> ERROR EN MAIN: Tiempo fuera de rango permisible"
-    );
-    return false;
-  }
-
-  Serial.println(
-    "--> MAIN CORRECTO: Pasa a la pantalla Velocidad"
-  );
+  if (vol < min_vol || vol > max_vol) return false;
+  if (tiempo_h < min_t_h || tiempo_h > max_t_h) return false;
 
   return true;
 }
 
-// ==========================================================
-// 2. VALIDACIÓN FINAL
-// ==========================================================
-
-bool validar_velocidad(
-  float vol,
-  float tiempo_h,
-  float vel_ingresada
-) {
-
-  if (tiempo_h <= 0)
-    return false;
-
-  float vel_calculada =
-    vol / tiempo_h;
-
-  Serial.println("\n--- VALIDANDO VELOCIDAD ---");
-
-  Serial.print(
-    "Velocidad calculada: "
-  );
-
-  Serial.print(
-    vel_calculada
-  );
-
-  Serial.print(
-    " vs Ingresada: "
-  );
-
-  Serial.println(
-    vel_ingresada
-  );
-
-  if (
-    abs(
-      vel_calculada -
-      vel_ingresada
-    ) > 1.0
-  ) {
-
-    Serial.println(
-      "--> ERROR: La velocidad no coincide con la fórmula Vol/Tiempo"
-    );
-
+bool validar_velocidad(float vol, float tiempo_h, float vel_ingresada) {
+  if (tiempo_h <= 0) return false;
+  float vel_calculada = vol / tiempo_h;
+  if (abs(vel_calculada - vel_ingresada) > 1.0) {
     return false;
   }
-
-  Serial.println(
-    "--> VELOCIDAD CORRECTA: Procede a la infusión"
-  );
-
   return true;
 }
 
 // ==========================================================
-// EVENTO: IR A PROGRAMAR
+// LÓGICA DE INTERVENCIÓN EN PANTALLA "SOLUCIONES"
 // ==========================================================
+void procesar_seleccion_intervencion(int opcion_elegida) {
+  bool es_correcta = false;
+  String txt_caso = "";
+  String txt_accion = "";
+  String txt_motivo = "";
+
+  if (caso_activo == 1) { // CASO 1: OCLUSIÓN DISTAL
+    txt_caso = "Oclusion Distal";
+    if (opcion_elegida == 1) {
+      es_correcta = true;
+      txt_accion = "Verificar cateter venoso";
+      txt_motivo = "Despeja el bloqueo o acodamiento directo en la vena del paciente.";
+    } else if (opcion_elegida == 2) {
+      txt_accion = "Activar purga de la bomba";
+      txt_motivo = "La purga es para aire, no para desbloquear la vena.";
+    } else if (opcion_elegida == 3) {
+      txt_accion = "Comprobar guia de infusion";
+      txt_motivo = "Revisar la guia no desobstruye un cateter tapado.";
+    } else if (opcion_elegida == 4) {
+      txt_accion = "Cambiar a modo KVO (1 mL/h)";
+      txt_motivo = "Reducir el flujo no elimina la resistencia mecanica en la via.";
+    }
+  } 
+  else if (caso_activo == 2) { // CASO 2: AIRE EN LA LÍNEA
+    txt_caso = "Aire en la Linea";
+    if (opcion_elegida == 2) {
+      es_correcta = true;
+      txt_accion = "Activar purga de la bomba";
+      txt_motivo = "Elimina la burbuja del sensor automaticamente sin contaminar la via.";
+    } else if (opcion_elegida == 1) {
+      txt_accion = "Verificar cateter venoso";
+      txt_motivo = "Revisar el brazo del paciente no quita el aire del tubo.";
+    } else if (opcion_elegida == 3) {
+      txt_accion = "Comprobar guia de infusion";
+      txt_motivo = "Verificar la guia no elimina la burbuja atrapada.";
+    } else if (opcion_elegida == 4) {
+      txt_accion = "Cambiar a modo KVO (1 mL/h)";
+      txt_motivo = "Cambiar la velocidad no extrae el aire y mantiene el riesgo de embolia.";
+    }
+  } 
+  else if (caso_activo == 3) { // CASO 3: DESVIACIÓN DE FLUJO
+    txt_caso = "Desviacion de Flujo";
+    if (opcion_elegida == 3) {
+      es_correcta = true;
+      txt_accion = "Comprobar guia de infusion";
+      txt_motivo = "Asegura que el tubo plastico tenga el diametro adecuado y este bien colocado.";
+    } else if (opcion_elegida == 1) {
+      txt_accion = "Verificar cateter venoso";
+      txt_motivo = "El problema es la velocidad de entrega, no un bloqueo en la vena.";
+    } else if (opcion_elegida == 2) {
+      txt_accion = "Activar purga de la bomba";
+      txt_motivo = "Purgar gasta solucion pero no corrige el calibre del tubo.";
+    } else if (opcion_elegida == 4) {
+      txt_accion = "Cambiar a modo KVO (1 mL/h)";
+      txt_motivo = "Bajar el flujo no resuelve el error de calibracion del volumen.";
+    }
+  }
+
+  // Cargar pantalla según el resultado
+  if (es_correcta) {
+    if (objects.caso != NULL) lv_label_set_text(objects.caso, txt_caso.c_str());
+    if (objects.accion_realizada != NULL) lv_label_set_text(objects.accion_realizada, txt_accion.c_str());
+    
+    if (objects.motivo_clinico != NULL) {
+      lv_label_set_long_mode(objects.motivo_clinico, LV_LABEL_LONG_WRAP);
+      lv_obj_set_width(objects.motivo_clinico, 220);
+      lv_label_set_text(objects.motivo_clinico, txt_motivo.c_str());
+    }
+    
+    if (objects.bien_ != NULL) lv_scr_load(objects.bien_);
+  } else {
+    if (objects.accion_error != NULL) lv_label_set_text(objects.accion_error, txt_accion.c_str());
+    
+    if (objects.motivo_del_error != NULL) {
+      lv_label_set_long_mode(objects.motivo_del_error, LV_LABEL_LONG_WRAP);
+      lv_obj_set_width(objects.motivo_del_error, 220);
+      lv_label_set_text(objects.motivo_del_error, txt_motivo.c_str());
+    }
+    
+    if (objects.mal != NULL) lv_scr_load(objects.mal);
+  }
+}
+
+// ==========================================================
+// EVENTOS DE BOTONES TÁCTILES
+// ==========================================================
+void evento_boton_dinamico(lv_event_t * e) {
+  if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
+    lv_obj_t * btn = lv_event_get_target(e);
+    lv_obj_t * label = lv_obj_get_child(btn, 0);
+    if (label != NULL) {
+      const char * txt = lv_label_get_text(label);
+      if (txt != NULL) {
+        String texto = String(txt);
+        if (texto.indexOf("cateter") >= 0) procesar_seleccion_intervencion(1);
+        else if (texto.indexOf("purga") >= 0) procesar_seleccion_intervencion(2);
+        else if (texto.indexOf("guia") >= 0) procesar_seleccion_intervencion(3);
+        else if (texto.indexOf("KVO") >= 0) procesar_seleccion_intervencion(4);
+      }
+    }
+  }
+}
 
 void evento_ir_a_programar(lv_event_t * e) {
-
-  if (
-    lv_event_get_code(e) ==
-    LV_EVENT_CLICKED
-  ) {
-
-    // ------------------------------------------------------
-    // SOLUCIÓN
-    // ------------------------------------------------------
-
-    if (
-      objects.opciones != NULL
-    ) {
-
+  if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
+    if (objects.opciones != NULL) {
       char opcion_elegida[64];
-
-      lv_dropdown_get_selected_str(
-        objects.opciones,
-        opcion_elegida,
-        sizeof(opcion_elegida)
-      );
-
-      solucion_seleccionada =
-        String(opcion_elegida);
+      lv_dropdown_get_selected_str(objects.opciones, opcion_elegida, sizeof(opcion_elegida));
+      solucion_seleccionada = String(opcion_elegida);
+    }
+    if (objects.numero_de_cama != NULL) {
+      const char* val = lv_textarea_get_text(objects.numero_de_cama);
+      if (val != NULL) cama_txt = String(val);
+    }
+    if (objects.volumen != NULL) {
+      const char* val = lv_textarea_get_text(objects.volumen);
+      if (val != NULL) volumen_txt = String(val);
+    }
+    if (objects.tiemto_total != NULL) {
+      const char* val = lv_textarea_get_text(objects.tiemto_total);
+      if (val != NULL) tiempo_txt = String(val);
     }
 
-    // ------------------------------------------------------
-    // CAMA
-    // ------------------------------------------------------
+    float vol_num = volumen_txt.toFloat();
+    float tiempo_num = tiempo_txt.toFloat();
 
-    if (
-      objects.numero_de_cama != NULL
-    ) {
-
-      const char* val =
-        lv_textarea_get_text(
-          objects.numero_de_cama
-        );
-
-      if (val != NULL)
-        cama_txt = String(val);
-    }
-
-    // ------------------------------------------------------
-    // VOLUMEN
-    // ------------------------------------------------------
-
-    if (
-      objects.volumen != NULL
-    ) {
-
-      const char* val =
-        lv_textarea_get_text(
-          objects.volumen
-        );
-
-      if (val != NULL)
-        volumen_txt = String(val);
-    }
-
-    // ------------------------------------------------------
-    // TIEMPO
-    // ------------------------------------------------------
-
-    if (
-      objects.tiemto_total != NULL
-    ) {
-
-      const char* val =
-        lv_textarea_get_text(
-          objects.tiemto_total
-        );
-
-      if (val != NULL)
-        tiempo_txt = String(val);
-    }
-
-    float vol_num =
-      volumen_txt.toFloat();
-
-    float tiempo_num =
-      tiempo_txt.toFloat();
-
-    bool main_ok =
-      validar_datos_main(
-        solucion_seleccionada,
-        vol_num,
-        tiempo_num
-      );
-
-    if (main_ok) {
-
-      if (
-        objects.velocidad != NULL
-      ) {
-
-        lv_scr_load(
-          objects.velocidad
-        );
-      }
-
+    if (validar_datos_main(solucion_seleccionada, vol_num, tiempo_num)) {
+      if (objects.velocidad != NULL) lv_scr_load(objects.velocidad);
     } else {
+      if (objects.error != NULL) lv_scr_load(objects.error);
+    }
+  }
+}
 
-      if (
-        objects.error != NULL
-      ) {
+void evento_boton_iniciar(lv_event_t * e) {
+  if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
+    if (objects.indique_el_valor_ != NULL) {
+      const char* val = lv_textarea_get_text(objects.indique_el_valor_);
+      if (val != NULL) velocidad_txt = String(val);
+    }
+    float vol_num = volumen_txt.toFloat();
+    float tiempo_num = tiempo_txt.toFloat();
+    float vel_num = velocidad_txt.toFloat();
 
-        lv_scr_load(
-          objects.error
-        );
-      }
+    if (validar_velocidad(vol_num, tiempo_num, vel_num)) {
+      if (objects.cargando != NULL) lv_scr_load(objects.cargando);
+    } else {
+      if (objects.error != NULL) lv_scr_load(objects.error);
     }
   }
 }
 
 // ==========================================================
-// EVENTO: BOTÓN INICIAR
+// REVISIÓN DE PULSADORES FÍSICOS
 // ==========================================================
+void revisar_botones_voz() {
+  if (objects.cargando != NULL && lv_scr_act() == objects.cargando) {
+    String mensaje_alerta = "";
 
-void evento_boton_iniciar(lv_event_t * e) {
-
-  if (
-    lv_event_get_code(e) ==
-    LV_EVENT_CLICKED
-  ) {
-
-    if (
-      objects.indique_el_valor_ != NULL
-    ) {
-
-      const char* val =
-        lv_textarea_get_text(
-          objects.indique_el_valor_
-        );
-
-      if (val != NULL)
-        velocidad_txt =
-          String(val);
+    if (digitalRead(BUTTON_FALLO_A) == LOW) {
+      caso_activo = 1;
+      mensaje_alerta = "Alarma de Oclusion Distal";
+    } else if (digitalRead(BUTTON_FALLO_B) == LOW) {
+      caso_activo = 2;
+      mensaje_alerta = "Alarma de Aire en la Linea";
+    } else if (digitalRead(BUTTON_FALLO_C) == LOW) {
+      caso_activo = 3;
+      mensaje_alerta = "Alarma de Desviacion de Flujo";
     }
 
-    float vol_num =
-      volumen_txt.toFloat();
-
-    float tiempo_num =
-      tiempo_txt.toFloat();
-
-    float vel_num =
-      velocidad_txt.toFloat();
-
-    bool vel_ok =
-      validar_velocidad(
-        vol_num,
-        tiempo_num,
-        vel_num
-      );
-
-    if (vel_ok) {
-
-      if (
-        objects.cargando != NULL
-      ) {
-
-        lv_scr_load(
-          objects.cargando
-        );
+    if (mensaje_alerta.length() > 0) {
+      if (objects.texto_de_alarma != NULL) {
+        // Mantiene la posición X,Y original asignada por SquareLine Studio (arriba de la imagen)
+        lv_label_set_long_mode(objects.texto_de_alarma, LV_LABEL_LONG_WRAP);
+        lv_obj_set_width(objects.texto_de_alarma, 220); // Limita el ancho para que el texto haga salto de línea
+        lv_obj_set_style_text_align(objects.texto_de_alarma, LV_TEXT_ALIGN_CENTER, 0); // Centra las líneas de texto entre sí
+        
+        lv_label_set_text(objects.texto_de_alarma, mensaje_alerta.c_str());
       }
+      if (objects.alarma != NULL) {
+        lv_scr_load(objects.alarma);
+      }
+    }
+  }
+}
 
+// Función auxiliar recursiva para asignar eventos a los botones según su texto
+void asignar_eventos_recursivo(lv_obj_t * parent) {
+  if (parent == NULL) return;
+  uint32_t cnt = lv_obj_get_child_cnt(parent);
+  for (uint32_t i = 0; i < cnt; i++) {
+    lv_obj_t * child = lv_obj_get_child(parent, i);
+    if (lv_obj_check_type(child, &lv_btn_class)) {
+      lv_obj_add_event_cb(child, evento_boton_dinamico, LV_EVENT_CLICKED, NULL);
     } else {
-
-      if (
-        objects.error != NULL
-      ) {
-
-        lv_scr_load(
-          objects.error
-        );
-      }
+      asignar_eventos_recursivo(child);
     }
   }
 }
@@ -422,319 +288,110 @@ void evento_boton_iniciar(lv_event_t * e) {
 // ==========================================================
 // SETUP
 // ==========================================================
-
 void setup() {
-
   Serial.begin(115200);
 
-  // ========================================================
-  // RETROILUMINACIÓN
-  // ========================================================
+  pinMode(PIN_BACKLIGHT, OUTPUT);
+  digitalWrite(PIN_BACKLIGHT, HIGH);
 
-  pinMode(
-    PIN_BACKLIGHT,
-    OUTPUT
-  );
+  // Configuración Buzzer
+  ledcAttach(PIN_BUZZER, BUZZER_FREQ, 8);
+  sonido_apagado();
 
-  digitalWrite(
-    PIN_BACKLIGHT,
-    HIGH
-  );
-
-  // ========================================================
-  // PANTALLA
-  // ========================================================
+  // Configuración Pulsadores
+  pinMode(BUTTON_FALLO_A, INPUT_PULLUP);
+  pinMode(BUTTON_FALLO_B, INPUT_PULLUP);
+  pinMode(BUTTON_FALLO_C, INPUT_PULLUP);
 
   LCD_Init();
-
   Lvgl_Init();
-
   ui_init();
-
-  // ========================================================
-  // AMPLIFICADOR FM8002E
-  // ========================================================
-
-  pinMode(
-    AUDIO_ENABLE_PIN,
-    OUTPUT
-  );
-
-  digitalWrite(
-    AUDIO_ENABLE_PIN,
-    HIGH
-  );
-
-  delay(20);
-
-  digitalWrite(
-    AUDIO_ENABLE_PIN,
-    LOW
-  );
-
-  delay(50);
-
-  // ========================================================
-  // PWM DE AUDIO
-  // ========================================================
-
-  ledcAttach(
-    AUDIO_DATA_PIN,
-    AUDIO_FREQUENCY,
-    8
-  );
-
-  ledcWrite(
-    AUDIO_DATA_PIN,
-    0
-  );
-
-  Serial.println("====================================");
-  Serial.println("SISTEMA DE BOMBA DE INFUSION");
-  Serial.print("Frecuencia audio: ");
-  Serial.print(AUDIO_FREQUENCY);
-  Serial.println(" Hz");
-  Serial.println("Amplificador FM8002E: ENCENDIDO");
-  Serial.println("====================================");
 }
 
 // ==========================================================
 // LOOP
 // ==========================================================
-
 void loop() {
-
-  // ========================================================
-  // LVGL
-  // ========================================================
-
   Lvgl_Loop();
-
   ui_tick();
 
-  // ========================================================
-  // REGISTRAR EVENTOS
-  // ========================================================
-
   static bool eventos_registrados = false;
-
   if (!eventos_registrados) {
-
-    if (
-      objects.ir_a_programar_ != NULL
-    ) {
-
-      lv_obj_add_event_cb(
-        objects.ir_a_programar_,
-        evento_ir_a_programar,
-        LV_EVENT_CLICKED,
-        NULL
-      );
+    if (objects.ir_a_programar_ != NULL) {
+      lv_obj_add_event_cb(objects.ir_a_programar_, evento_ir_a_programar, LV_EVENT_CLICKED, NULL);
+    }
+    if (objects.boton != NULL) {
+      lv_obj_add_event_cb(objects.boton, evento_boton_iniciar, LV_EVENT_CLICKED, NULL);
     }
 
-    if (
-      objects.boton != NULL
-    ) {
-
-      lv_obj_add_event_cb(
-        objects.boton,
-        evento_boton_iniciar,
-        LV_EVENT_CLICKED,
-        NULL
-      );
+    if (objects.soluciones_ != NULL) {
+      asignar_eventos_recursivo(objects.soluciones_);
     }
 
     eventos_registrados = true;
   }
 
-  // ========================================================
-  // LABEL CAMA
-  // ========================================================
+  // Actualizar etiquetas en pantalla
+  if (objects.label_cama != NULL) lv_label_set_text(objects.label_cama, cama_txt.c_str());
+  if (objects.label_solucion != NULL) lv_label_set_text(objects.label_solucion, solucion_seleccionada.c_str());
+  if (objects.label_volumen != NULL) { String tv = volumen_txt + " mL"; lv_label_set_text(objects.label_volumen, tv.c_str()); }
+  if (objects.label_tiempo != NULL) { String tt = tiempo_txt + " Hrs"; lv_label_set_text(objects.label_tiempo, tt.c_str()); }
+  if (objects.label_velocidad != NULL) { String tvel = velocidad_txt + " mL/h"; lv_label_set_text(objects.label_velocidad, tvel.c_str()); }
 
-  if (
-    objects.label_cama != NULL
-  ) {
+  // Revisar estado de botones físicos
+  revisar_botones_voz();
 
-    lv_label_set_text(
-      objects.label_cama,
-      cama_txt.c_str()
-    );
-  }
+  // Control de sonido Buzzer en pantallas de Alarma o Error
+  static unsigned long ultimo_cambio_sonido = 0;
+  static bool estado_buzzer = false;
 
-  // ========================================================
-  // LABEL SOLUCIÓN
-  // ========================================================
+  bool es_pantalla_error = (objects.error != NULL && lv_scr_act() == objects.error);
+  bool es_pantalla_alarma = (objects.alarma != NULL && lv_scr_act() == objects.alarma);
 
-  if (
-    objects.label_solucion != NULL
-  ) {
+  if (es_pantalla_error || es_pantalla_alarma) {
+    if (::millis() - ultimo_cambio_sonido >= 300) {
+      ultimo_cambio_sonido = ::millis();
+      estado_buzzer = !estado_buzzer;
 
-    lv_label_set_text(
-      objects.label_solucion,
-      solucion_seleccionada.c_str()
-    );
-  }
-
-  // ========================================================
-  // LABEL VOLUMEN
-  // ========================================================
-
-  if (
-    objects.label_volumen != NULL
-  ) {
-
-    String texto_volumen =
-      volumen_txt + " mL";
-
-    lv_label_set_text(
-      objects.label_volumen,
-      texto_volumen.c_str()
-    );
-  }
-
-  // ========================================================
-  // LABEL TIEMPO
-  // ========================================================
-
-  if (
-    objects.label_tiempo != NULL
-  ) {
-
-    String texto_tiempo =
-      tiempo_txt + " Hrs";
-
-    lv_label_set_text(
-      objects.label_tiempo,
-      texto_tiempo.c_str()
-    );
-  }
-
-  // ========================================================
-  // LABEL VELOCIDAD
-  // ========================================================
-
-  if (
-    objects.label_velocidad != NULL
-  ) {
-
-    String texto_velocidad =
-      velocidad_txt + " mL/h";
-
-    lv_label_set_text(
-      objects.label_velocidad,
-      texto_velocidad.c_str()
-    );
-  }
-
-  // ========================================================
-  // PARPADEO DEL ERROR
-  // ========================================================
-
-  static unsigned long
-    ultimo_tiempo_triangulo = 0;
-
-  static bool esta_oculto = false;
-
-  if (
-    ::millis() -
-    ultimo_tiempo_triangulo >= 400
-  ) {
-
-    ultimo_tiempo_triangulo =
-      ::millis();
-
-    if (
-      objects.error != NULL &&
-      lv_scr_act() == objects.error
-    ) {
-
-      if (
-        objects.triangulo_error != NULL
-      ) {
-
-        esta_oculto =
-          !esta_oculto;
-
-        if (esta_oculto) {
-
-          lv_obj_add_flag(
-            objects.triangulo_error,
-            LV_OBJ_FLAG_HIDDEN
-          );
-
-          sonido_apagado();
-        }
-
-        else {
-
-          lv_obj_clear_flag(
-            objects.triangulo_error,
-            LV_OBJ_FLAG_HIDDEN
-          );
-
-          sonido_encendido();
-        }
+      if (estado_buzzer) {
+        sonido_encendido();
+      } else {
+        sonido_apagado();
       }
 
+      if (es_pantalla_error && objects.triangulo_error != NULL) {
+        if (estado_buzzer) {
+          lv_obj_clear_flag(objects.triangulo_error, LV_OBJ_FLAG_HIDDEN);
+        } else {
+          lv_obj_add_flag(objects.triangulo_error, LV_OBJ_FLAG_HIDDEN);
+        }
+      }
     }
-
-    else {
-
-      esta_oculto = false;
-
+  } else {
+    if (estado_buzzer) {
+      estado_buzzer = false;
       sonido_apagado();
     }
   }
 
-  // ========================================================
-  // BARRA DE SUERO (ANIMACIÓN DE VACIADO 100% -> 0%)
-  // ==========================================================
-
+  // Animación de la barra de suero
   static unsigned long ultimo_tiempo_suero = 0;
-  static int nivel_suero = 100; // Comienza completamente llena
+  static int nivel_suero = 100;
 
-  if (
-    ::millis() -
-    ultimo_tiempo_suero >= 400
-  ) {
+  if (::millis() - ultimo_tiempo_suero >= 400) {
+    ultimo_tiempo_suero = ::millis();
 
-    ultimo_tiempo_suero =
-      ::millis();
-
-    if (
-      objects.cargando != NULL &&
-      lv_scr_act() == objects.cargando
-    ) {
-
-      // Disminuye el porcentaje del líquido
+    if (objects.cargando != NULL && lv_scr_act() == objects.cargando) {
       nivel_suero--;
+      if (nivel_suero < 0) nivel_suero = 100;
 
-      // Al agotarse el suero (0%), se reinicia al 100%
-      if (nivel_suero < 0) {
-        nivel_suero = 100;
+      if (objects.suero_bar != NULL) {
+        lv_bar_set_value(objects.suero_bar, nivel_suero, LV_ANIM_ON);
       }
-
-      if (
-        objects.suero_bar != NULL
-      ) {
-
-        lv_bar_set_value(
-          objects.suero_bar,
-          nivel_suero,
-          LV_ANIM_ON
-        );
-      }
-
     } else {
-
-      // Si se sale de la pantalla de infusión, la bolsa se restablece a 100%
       nivel_suero = 100;
     }
   }
 
-  // ========================================================
-  // LOOP RÁPIDO
-  // ========================================================
-
-  delay(5);
+  delay(2);
 }

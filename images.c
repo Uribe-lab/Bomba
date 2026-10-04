@@ -5,5 +5,5 @@ const ext_img_desc_t images[5] = {
     { "error_velocidad", &img_error_velocidad },
     { "y", &img_y },
     { "alarma", &img_alarma },
-    { "l", &img_l },
+    { "ALARMA NEGRA", &img_alarma_negra },
 };

@@ -12,8 +12,8 @@
 
 objects_t objects;
 
-static const char *screen_names[] = { "Main", "velocidad", "ERROR", "cargando", "alarma" };
-static const char *object_names[] = { "main", "velocidad", "error", "cargando", "alarma", "ord", "numero_de_cama", "opciones", "volumen", "tiemto_total", "ir_a_programar_", "teclado1", "teclado_2", "boton", "indique_el_valor_", "teclado_3", "obj0", "obj1", "obj2", "triangulo_error", "obj3", "suero_bar", "obj4", "label_cama", "label_volumen", "label_tiempo", "label_velocidad", "label_solucion", "obj5", "obj6", "obj7", "obj8" };
+static const char *screen_names[] = { "Main", "velocidad", "ERROR", "cargando", "alarma", "SOLUCIONES ", "bien ", "mal" };
+static const char *object_names[] = { "main", "velocidad", "error", "cargando", "alarma", "soluciones_", "bien_", "mal", "ord", "numero_de_cama", "opciones", "volumen", "tiemto_total", "ir_a_programar_", "teclado1", "teclado_2", "boton", "indique_el_valor_", "teclado_3", "obj0", "obj1", "obj2", "triangulo_error", "obj3", "suero_bar", "obj4", "label_cama", "label_volumen", "label_tiempo", "label_velocidad", "label_solucion", "obj5", "obj6", "obj7", "obj8", "texto_de_alarma", "obj9", "alarma_imagen", "obj10", "obj11", "caso", "accion_realizada", "motivo_clinico", "obj12", "obj13", "obj14", "accion_error", "motivo_del_error" };
 
 //
 // Event handlers
@@ -83,7 +83,7 @@ static void event_handler_cb_velocidad_velocidad(lv_event_t *e) {
     
     if (event == LV_EVENT_VALUE_CHANGED) {
         e->user_data = (void *)0;
-        flowPropagateValueLVGLEvent(flowState, -1, 5, e);
+        flowPropagateValueLVGLEvent(flowState, -1, 8, e);
     }
 }
 
@@ -128,6 +128,39 @@ static void event_handler_cb_error_obj3(lv_event_t *e) {
     if (event == LV_EVENT_PRESSED) {
         e->user_data = (void *)0;
         flowPropagateValueLVGLEvent(flowState, 4, 0, e);
+    }
+}
+
+static void event_handler_cb_alarma_obj9(lv_event_t *e) {
+    lv_event_code_t event = lv_event_get_code(e);
+    void *flowState = lv_event_get_user_data(e);
+    (void)flowState;
+    
+    if (event == LV_EVENT_PRESSED) {
+        e->user_data = (void *)0;
+        flowPropagateValueLVGLEvent(flowState, 2, 0, e);
+    }
+}
+
+static void event_handler_cb_bien__obj11(lv_event_t *e) {
+    lv_event_code_t event = lv_event_get_code(e);
+    void *flowState = lv_event_get_user_data(e);
+    (void)flowState;
+    
+    if (event == LV_EVENT_PRESSED) {
+        e->user_data = (void *)0;
+        flowPropagateValueLVGLEvent(flowState, 3, 0, e);
+    }
+}
+
+static void event_handler_cb_mal_obj14(lv_event_t *e) {
+    lv_event_code_t event = lv_event_get_code(e);
+    void *flowState = lv_event_get_user_data(e);
+    (void)flowState;
+    
+    if (event == LV_EVENT_PRESSED) {
+        e->user_data = (void *)0;
+        flowPropagateValueLVGLEvent(flowState, 3, 0, e);
     }
 }
 
@@ -533,26 +566,42 @@ void create_screen_alarma() {
     objects.alarma = obj;
     lv_obj_set_pos(obj, 0, 0);
     lv_obj_set_size(obj, 240, 320);
-    lv_obj_set_style_bg_color(obj, lv_color_hex(0xd53232), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(obj, lv_color_hex(0x8e3131), LV_PART_MAIN | LV_STATE_DEFAULT);
     {
         lv_obj_t *parent_obj = obj;
         {
+            // texto_de_alarma
             lv_obj_t *obj = lv_label_create(parent_obj);
-            lv_obj_set_pos(obj, 106, 52);
+            objects.texto_de_alarma = obj;
+            lv_obj_set_pos(obj, 11, 41);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_label_set_text_static(obj, "Text");
         }
         {
-            lv_obj_t *obj = lv_img_create(parent_obj);
-            lv_obj_set_pos(obj, 54, 92);
-            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-            lv_img_set_src(obj, &img_alarma);
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.obj9 = obj;
+            lv_obj_set_pos(obj, 25, 242);
+            lv_obj_set_size(obj, 193, 50);
+            lv_obj_add_event_cb(obj, event_handler_cb_alarma_obj9, LV_EVENT_ALL, flowState);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0xd7225f), LV_PART_MAIN | LV_STATE_DEFAULT);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text_static(obj, "IR A SOLUCIONAR");
+                }
+            }
         }
         {
+            // alarma_imagen
             lv_obj_t *obj = lv_img_create(parent_obj);
-            lv_obj_set_pos(obj, 111, 191);
+            objects.alarma_imagen = obj;
+            lv_obj_set_pos(obj, 54, 99);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-            lv_img_set_src(obj, &img_l);
+            lv_img_set_src(obj, &img_alarma_negra);
         }
     }
     
@@ -564,6 +613,279 @@ void tick_screen_alarma() {
     (void)flowState;
 }
 
+void create_screen_soluciones_() {
+    void *flowState = getFlowState(0, 5);
+    (void)flowState;
+    lv_obj_t *obj = lv_obj_create(0);
+    objects.soluciones_ = obj;
+    lv_obj_set_pos(obj, 0, 0);
+    lv_obj_set_size(obj, 240, 320);
+    lv_obj_set_style_bg_color(obj, lv_color_hex(0xd9dce1), LV_PART_MAIN | LV_STATE_DEFAULT);
+    {
+        lv_obj_t *parent_obj = obj;
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 31, 23);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "SELECCIONE LA ACCION \n           CORRECTIVA");
+        }
+        {
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            lv_obj_set_pos(obj, 10, 85);
+            lv_obj_set_size(obj, 222, 43);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text_static(obj, "Verificar cateter venoso");
+                }
+            }
+        }
+        {
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            lv_obj_set_pos(obj, 10, 139);
+            lv_obj_set_size(obj, 222, 43);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text_static(obj, "Activar purga de la bomba");
+                }
+            }
+        }
+        {
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            lv_obj_set_pos(obj, 10, 252);
+            lv_obj_set_size(obj, 222, 43);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text_static(obj, "Cambiar a modo KVO (1 mL/h)");
+                }
+            }
+        }
+        {
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            lv_obj_set_pos(obj, 10, 196);
+            lv_obj_set_size(obj, 222, 43);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text_static(obj, "Comprobar guia de infusion");
+                }
+            }
+        }
+    }
+    
+    tick_screen_soluciones_();
+}
+
+void tick_screen_soluciones_() {
+    void *flowState = getFlowState(0, 5);
+    (void)flowState;
+}
+
+void create_screen_bien_() {
+    void *flowState = getFlowState(0, 6);
+    (void)flowState;
+    lv_obj_t *obj = lv_obj_create(0);
+    objects.bien_ = obj;
+    lv_obj_set_pos(obj, 0, 0);
+    lv_obj_set_size(obj, 240, 320);
+    lv_obj_set_style_bg_color(obj, lv_color_hex(0xdfe9dd), LV_PART_MAIN | LV_STATE_DEFAULT);
+    {
+        lv_obj_t *parent_obj = obj;
+        {
+            lv_obj_t *obj = lv_obj_create(parent_obj);
+            objects.obj10 = obj;
+            lv_obj_set_pos(obj, 0, 0);
+            lv_obj_set_size(obj, 240, 48);
+            lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_right(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0x2e7d32), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 24, 16);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "INTERVENCION CORRECTA");
+        }
+        {
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.obj11 = obj;
+            lv_obj_set_pos(obj, 0, 262);
+            lv_obj_set_size(obj, 240, 58);
+            lv_obj_add_event_cb(obj, event_handler_cb_bien__obj11, LV_EVENT_ALL, flowState);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text_static(obj, "REANUDAR INFUSION");
+                }
+            }
+        }
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 11, 58);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "CASO:");
+        }
+        {
+            // caso
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.caso = obj;
+            lv_obj_set_pos(obj, 11, 82);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "Text");
+        }
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 11, 106);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "ACCION REALIZADA:");
+        }
+        {
+            // Accion_realizada
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.accion_realizada = obj;
+            lv_obj_set_pos(obj, 11, 133);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "Text");
+        }
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 11, 160);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "MOTIVO CLINICO:");
+        }
+        {
+            // motivo_clinico
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.motivo_clinico = obj;
+            lv_obj_set_pos(obj, 11, 188);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "Text");
+        }
+    }
+    
+    tick_screen_bien_();
+}
+
+void tick_screen_bien_() {
+    void *flowState = getFlowState(0, 6);
+    (void)flowState;
+}
+
+void create_screen_mal() {
+    void *flowState = getFlowState(0, 7);
+    (void)flowState;
+    lv_obj_t *obj = lv_obj_create(0);
+    objects.mal = obj;
+    lv_obj_set_pos(obj, 0, 0);
+    lv_obj_set_size(obj, 240, 320);
+    {
+        lv_obj_t *parent_obj = obj;
+        {
+            lv_obj_t *obj = lv_obj_create(parent_obj);
+            objects.obj12 = obj;
+            lv_obj_set_pos(obj, 0, 0);
+            lv_obj_set_size(obj, 240, 55);
+            lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_right(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0xc62828), LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.obj13 = obj;
+            lv_obj_set_pos(obj, 17, 20);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text_static(obj, "INTERVENCION INCORRECTA");
+        }
+        {
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.obj14 = obj;
+            lv_obj_set_pos(obj, 0, 265);
+            lv_obj_set_size(obj, 240, 55);
+            lv_obj_add_event_cb(obj, event_handler_cb_mal_obj14, LV_EVENT_ALL, flowState);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0x424242), LV_PART_MAIN | LV_STATE_DEFAULT);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text_static(obj, "REEVALUAR CASO");
+                }
+            }
+        }
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 15, 84);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "Accion seleccionada:");
+        }
+        {
+            // accion_error
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.accion_error = obj;
+            lv_obj_set_pos(obj, 15, 112);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "Text");
+        }
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 15, 144);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "Motivo del error:");
+        }
+        {
+            // motivo_del_error
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.motivo_del_error = obj;
+            lv_obj_set_pos(obj, 15, 172);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_static(obj, "Text");
+        }
+    }
+    
+    tick_screen_mal();
+}
+
+void tick_screen_mal() {
+    void *flowState = getFlowState(0, 7);
+    (void)flowState;
+}
+
 typedef void (*tick_screen_func_t)();
 tick_screen_func_t tick_screen_funcs[] = {
     tick_screen_main,
@@ -571,9 +893,12 @@ tick_screen_func_t tick_screen_funcs[] = {
     tick_screen_error,
     tick_screen_cargando,
     tick_screen_alarma,
+    tick_screen_soluciones_,
+    tick_screen_bien_,
+    tick_screen_mal,
 };
 void tick_screen(int screen_index) {
-    if (screen_index >= 0 && screen_index < 5) {
+    if (screen_index >= 0 && screen_index < 8) {
         tick_screen_funcs[screen_index]();
     }
 }
@@ -674,4 +999,7 @@ void create_screens() {
     create_screen_error();
     create_screen_cargando();
     create_screen_alarma();
+    create_screen_soluciones_();
+    create_screen_bien_();
+    create_screen_mal();
 }
