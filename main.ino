@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <ESP32Servo.h>
 #include "Display_ST7789.h"
 #include "LVGL_Driver.h"
 #include "ui.h"
@@ -17,10 +18,16 @@
 #define BUZZER_FREQ        2800
 
 // ==========================================================
-// PIN ANALÓGICO MICRÓFONO KY-037 (AO en IO2)
+// PIN DEL SERVOMOTOR SG90 (IO3)
+// ==========================================================
+#define PIN_SERVO          3     // Señal conectada al pin IO3
+Servo miServo;
+
+// ==========================================================
+// PIN ANALÓGICO MICRÓFONO KY-037 (IO2)
 // ==========================================================
 #define PIN_MIC_ANALOG     2     // Salida AO conectada a IO2
-#define UMBRAL_SONIDO     2400   // Umbral seguro sobre el ruido de 2280
+#define UMBRAL_SONIDO     2400   // Umbral seguro sobre el ruido base (~2280)
 
 // ==========================================================
 // VARIABLES GLOBALES
@@ -36,9 +43,20 @@ int caso_activo = 0;
 
 // Variables de Control de Aplausos
 unsigned long ultimo_tiempo_deteccion = 0;
-unsigned long ventana_tiempo = 1800; // 1.8s de silencio para dar margen cómodo al aplaudir
+unsigned long ventana_tiempo = 1800; // 1.8s de silencio
 int contador_aplausos = 0;
 bool detectando = false;
+
+// ==========================================================
+// CONTROL DE SERVOMOTOR MEDIANTE ESP32Servo (0° - 90°)
+// ==========================================================
+void mover_servo(int angulo) {
+  miServo.write(angulo);
+  
+  Serial.print(">> Servo en IO3 movido a: ");
+  Serial.print(angulo);
+  Serial.println("°");
+}
 
 // ==========================================================
 // CONTROL DE BUZZER
@@ -165,8 +183,9 @@ void procesar_seleccion_intervencion(int opcion_elegida) {
     }
   }
 
-  // Cargar pantalla según el resultado
   if (es_correcta) {
+    mover_servo(90); // ABRE LA PINZA (90°) AL CORREGIR EL CASO
+
     if (objects.caso != NULL) lv_label_set_text(objects.caso, txt_caso.c_str());
     if (objects.accion_realizada != NULL) lv_label_set_text(objects.accion_realizada, txt_accion.c_str());
     
@@ -178,6 +197,8 @@ void procesar_seleccion_intervencion(int opcion_elegida) {
     
     if (objects.bien_ != NULL) lv_scr_load(objects.bien_);
   } else {
+    mover_servo(0); // CIERRA LA PINZA (0°) SI ES INCORRECTO
+
     if (objects.accion_error != NULL) lv_label_set_text(objects.accion_error, txt_accion.c_str());
     
     if (objects.motivo_del_error != NULL) {
@@ -212,6 +233,8 @@ void evento_boton_dinamico(lv_event_t * e) {
 
 void evento_ir_a_programar(lv_event_t * e) {
   if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
+    mover_servo(0); // PINZA CERRADA EN CONFIGURACIÓN INICIAL
+
     if (objects.opciones != NULL) {
       char opcion_elegida[64];
       lv_dropdown_get_selected_str(objects.opciones, opcion_elegida, sizeof(opcion_elegida));
@@ -255,15 +278,18 @@ void evento_boton_iniciar(lv_event_t * e) {
       contador_aplausos = 0;
       detectando = false;
 
+      mover_servo(90); // ABRE LA PINZA (90°) AL INICIAR LA INFUSIÓN (CARGANDO)
+
       if (objects.cargando != NULL) lv_scr_load(objects.cargando);
     } else {
+      mover_servo(0);
       if (objects.error != NULL) lv_scr_load(objects.error);
     }
   }
 }
 
 // ==========================================================
-// REVISIÓN CON TEMPORIZACIÓN DE RITMO HUMANO REAL
+// REVISIÓN MICRÓFONO KY-037
 // ==========================================================
 void revisar_mic_analogo() {
   if (objects.cargando == NULL || lv_scr_act() != objects.cargando) {
@@ -272,7 +298,6 @@ void revisar_mic_analogo() {
     return;
   }
 
-  // Muestreo rápido de picos
   int lectura_maxima = 0;
   for (int i = 0; i < 40; i++) {
     int val = analogRead(PIN_MIC_ANALOG);
@@ -281,7 +306,6 @@ void revisar_mic_analogo() {
     }
   }
 
-  // Anti-rebote aumentado a 220ms para filtrar ecos y rebotes
   if (lectura_maxima > UMBRAL_SONIDO && (::millis() - ultimo_tiempo_deteccion > 220)) {
     contador_aplausos++;
     ultimo_tiempo_deteccion = ::millis();
@@ -294,7 +318,6 @@ void revisar_mic_analogo() {
     Serial.println(")");
   }
 
-  // Espera 1.8 segundos de silencio antes de validar el total acumulado
   if (detectando && (::millis() - ultimo_tiempo_deteccion > ventana_tiempo)) {
     Serial.print("\n=== FIN DE SECUENCIA: Total de aplausos contados = ");
     Serial.print(contador_aplausos);
@@ -328,6 +351,8 @@ void revisar_mic_analogo() {
     if (mensaje_alerta.length() > 0) {
       Serial.print("Cambiando pantalla a: ");
       Serial.println(mensaje_alerta);
+
+      mover_servo(0); // OCLUYE / CIERRA LA PINZA (0°) AL SALTAR UNA ALARMA
 
       if (objects.texto_de_alarma != NULL) {
         lv_label_set_long_mode(objects.texto_de_alarma, LV_LABEL_LONG_WRAP);
@@ -368,6 +393,17 @@ void setup() {
   pinMode(PIN_BACKLIGHT, OUTPUT);
   digitalWrite(PIN_BACKLIGHT, HIGH);
 
+  // Asignar temporizadores y vincular servo en IO3
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
+
+  miServo.setPeriodHertz(50);
+  miServo.attach(PIN_SERVO, 500, 2400); // IO3
+  mover_servo(0); // Posición inicial 0°
+
+  // Configurar Buzzer en IO21
   ledcAttach(PIN_BUZZER, BUZZER_FREQ, 8);
   sonido_apagado();
 
@@ -378,7 +414,7 @@ void setup() {
   ui_init();
 
   Serial.println("\n-------------------------------------------");
-  Serial.println("  SISTEMA DE INFUSIÓN LISTO");
+  Serial.println("  SISTEMA DE INFUSIÓN LISTO CON SERVO SG90");
   Serial.println("-------------------------------------------");
 }
 
@@ -412,7 +448,7 @@ void loop() {
   if (objects.label_tiempo != NULL) { String tt = tiempo_txt + " Hrs"; lv_label_set_text(objects.label_tiempo, tt.c_str()); }
   if (objects.label_velocidad != NULL) { String tvel = velocidad_txt + " mL/h"; lv_label_set_text(objects.label_velocidad, tvel.c_str()); }
 
-  // Monitoreo continuo del micrófono en la pantalla de carga
+  // Monitoreo del micrófono
   revisar_mic_analogo();
 
   // Control del Buzzer en Alarma o Error
