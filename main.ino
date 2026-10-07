@@ -17,11 +17,10 @@
 #define BUZZER_FREQ        2800
 
 // ==========================================================
-// PINES DE PULSADORES (3 PULSADORES DE ALARMA)
+// PIN ANALÓGICO MICRÓFONO KY-037 (AO en IO2)
 // ==========================================================
-#define BUTTON_FALLO_A     2   // IO2  -> Caso 1: Oclusión Distal
-#define BUTTON_FALLO_B     3   // IO3  -> Caso 2: Aire en la Línea
-#define BUTTON_FALLO_C     14  // IO14 -> Caso 3: Desviación de Flujo
+#define PIN_MIC_ANALOG     2     // Salida AO conectada a IO2
+#define UMBRAL_SONIDO     2400   // Umbral seguro sobre el ruido de 2280
 
 // ==========================================================
 // VARIABLES GLOBALES
@@ -32,8 +31,14 @@ String volumen_txt = "---";
 String tiempo_txt = "---";
 String velocidad_txt = "---";
 
-// Control de Caso Activo (1: Oclusión, 2: Aire, 3: Desviación)
+// Control de Caso Activo (1: Oclusión, 2: Aire, 3: Desviación, 4: Fin de Infusión)
 int caso_activo = 0; 
+
+// Variables de Control de Aplausos
+unsigned long ultimo_tiempo_deteccion = 0;
+unsigned long ventana_tiempo = 1800; // 1.8s de silencio para dar margen cómodo al aplaudir
+int contador_aplausos = 0;
+bool detectando = false;
 
 // ==========================================================
 // CONTROL DE BUZZER
@@ -142,6 +147,23 @@ void procesar_seleccion_intervencion(int opcion_elegida) {
       txt_motivo = "Bajar el flujo no resuelve el error de calibracion del volumen.";
     }
   }
+  else if (caso_activo == 4) { // CASO 4: FIN DE INFUSIÓN
+    txt_caso = "Fin de Infusion";
+    if (opcion_elegida == 4) {
+      es_correcta = true;
+      txt_accion = "Cambiar a modo KVO (1 mL/h)";
+      txt_motivo = "Mantiene un flujo minimo continuo para evitar que la vena del paciente se coagule.";
+    } else if (opcion_elegida == 1) {
+      txt_accion = "Verificar cateter venoso";
+      txt_motivo = "La via no esta obstruida; simplemente se termino la solucion prescrita.";
+    } else if (opcion_elegida == 2) {
+      txt_accion = "Activar purga de la bomba";
+      txt_motivo = "No hay aire en el sistema para purgar.";
+    } else if (opcion_elegida == 3) {
+      txt_accion = "Comprobar guia de infusion";
+      txt_motivo = "La guia esta bien colocada; el volumen completo ya fue entregado.";
+    }
+  }
 
   // Cargar pantalla según el resultado
   if (es_correcta) {
@@ -230,6 +252,9 @@ void evento_boton_iniciar(lv_event_t * e) {
     float vel_num = velocidad_txt.toFloat();
 
     if (validar_velocidad(vol_num, tiempo_num, vel_num)) {
+      contador_aplausos = 0;
+      detectando = false;
+
       if (objects.cargando != NULL) lv_scr_load(objects.cargando);
     } else {
       if (objects.error != NULL) lv_scr_load(objects.error);
@@ -238,40 +263,89 @@ void evento_boton_iniciar(lv_event_t * e) {
 }
 
 // ==========================================================
-// REVISIÓN DE PULSADORES FÍSICOS
+// REVISIÓN CON TEMPORIZACIÓN DE RITMO HUMANO REAL
 // ==========================================================
-void revisar_botones_voz() {
-  if (objects.cargando != NULL && lv_scr_act() == objects.cargando) {
+void revisar_mic_analogo() {
+  if (objects.cargando == NULL || lv_scr_act() != objects.cargando) {
+    contador_aplausos = 0;
+    detectando = false;
+    return;
+  }
+
+  // Muestreo rápido de picos
+  int lectura_maxima = 0;
+  for (int i = 0; i < 40; i++) {
+    int val = analogRead(PIN_MIC_ANALOG);
+    if (val > lectura_maxima) {
+      lectura_maxima = val;
+    }
+  }
+
+  // Anti-rebote aumentado a 220ms para filtrar ecos y rebotes
+  if (lectura_maxima > UMBRAL_SONIDO && (::millis() - ultimo_tiempo_deteccion > 220)) {
+    contador_aplausos++;
+    ultimo_tiempo_deteccion = ::millis();
+    detectando = true;
+
+    Serial.print("-> Aplauso #");
+    Serial.print(contador_aplausos);
+    Serial.print(" detectado (Pico: ");
+    Serial.print(lectura_maxima);
+    Serial.println(")");
+  }
+
+  // Espera 1.8 segundos de silencio antes de validar el total acumulado
+  if (detectando && (::millis() - ultimo_tiempo_deteccion > ventana_tiempo)) {
+    Serial.print("\n=== FIN DE SECUENCIA: Total de aplausos contados = ");
+    Serial.print(contador_aplausos);
+    Serial.println(" ===");
+
     String mensaje_alerta = "";
 
-    if (digitalRead(BUTTON_FALLO_A) == LOW) {
-      caso_activo = 1;
-      mensaje_alerta = "Alarma de Oclusion Distal";
-    } else if (digitalRead(BUTTON_FALLO_B) == LOW) {
-      caso_activo = 2;
-      mensaje_alerta = "Alarma de Aire en la Linea";
-    } else if (digitalRead(BUTTON_FALLO_C) == LOW) {
-      caso_activo = 3;
-      mensaje_alerta = "Alarma de Desviacion de Flujo";
+    switch (contador_aplausos) {
+      case 1:
+        caso_activo = 1;
+        mensaje_alerta = "Alarma de Oclusion Distal";
+        break;
+      case 2:
+        caso_activo = 2;
+        mensaje_alerta = "Alarma de Aire en la Linea";
+        break;
+      case 3:
+        caso_activo = 3;
+        mensaje_alerta = "Alarma Desviacion de Flujo";
+        break;
+      case 4:
+        caso_activo = 4;
+        mensaje_alerta = "Alarma Fin de Infusion";
+        break;
+      default:
+        Serial.print(">> Conteo fuera de rango (1-4): ");
+        Serial.println(contador_aplausos);
+        break;
     }
 
     if (mensaje_alerta.length() > 0) {
+      Serial.print("Cambiando pantalla a: ");
+      Serial.println(mensaje_alerta);
+
       if (objects.texto_de_alarma != NULL) {
-        // Mantiene la posición X,Y original asignada por SquareLine Studio (arriba de la imagen)
         lv_label_set_long_mode(objects.texto_de_alarma, LV_LABEL_LONG_WRAP);
-        lv_obj_set_width(objects.texto_de_alarma, 220); // Limita el ancho para que el texto haga salto de línea
-        lv_obj_set_style_text_align(objects.texto_de_alarma, LV_TEXT_ALIGN_CENTER, 0); // Centra las líneas de texto entre sí
-        
+        lv_obj_set_width(objects.texto_de_alarma, 220);
+        lv_obj_set_style_text_align(objects.texto_de_alarma, LV_TEXT_ALIGN_CENTER, 0);
         lv_label_set_text(objects.texto_de_alarma, mensaje_alerta.c_str());
       }
+
       if (objects.alarma != NULL) {
         lv_scr_load(objects.alarma);
       }
     }
+
+    contador_aplausos = 0;
+    detectando = false;
   }
 }
 
-// Función auxiliar recursiva para asignar eventos a los botones según su texto
 void asignar_eventos_recursivo(lv_obj_t * parent) {
   if (parent == NULL) return;
   uint32_t cnt = lv_obj_get_child_cnt(parent);
@@ -294,18 +368,18 @@ void setup() {
   pinMode(PIN_BACKLIGHT, OUTPUT);
   digitalWrite(PIN_BACKLIGHT, HIGH);
 
-  // Configuración Buzzer
   ledcAttach(PIN_BUZZER, BUZZER_FREQ, 8);
   sonido_apagado();
 
-  // Configuración Pulsadores
-  pinMode(BUTTON_FALLO_A, INPUT_PULLUP);
-  pinMode(BUTTON_FALLO_B, INPUT_PULLUP);
-  pinMode(BUTTON_FALLO_C, INPUT_PULLUP);
+  pinMode(PIN_MIC_ANALOG, INPUT);
 
   LCD_Init();
   Lvgl_Init();
   ui_init();
+
+  Serial.println("\n-------------------------------------------");
+  Serial.println("  SISTEMA DE INFUSIÓN LISTO");
+  Serial.println("-------------------------------------------");
 }
 
 // ==========================================================
@@ -338,10 +412,10 @@ void loop() {
   if (objects.label_tiempo != NULL) { String tt = tiempo_txt + " Hrs"; lv_label_set_text(objects.label_tiempo, tt.c_str()); }
   if (objects.label_velocidad != NULL) { String tvel = velocidad_txt + " mL/h"; lv_label_set_text(objects.label_velocidad, tvel.c_str()); }
 
-  // Revisar estado de botones físicos
-  revisar_botones_voz();
+  // Monitoreo continuo del micrófono en la pantalla de carga
+  revisar_mic_analogo();
 
-  // Control de sonido Buzzer en pantallas de Alarma o Error
+  // Control del Buzzer en Alarma o Error
   static unsigned long ultimo_cambio_sonido = 0;
   static bool estado_buzzer = false;
 
@@ -392,6 +466,4 @@ void loop() {
       nivel_suero = 100;
     }
   }
-
-  delay(2);
 }
